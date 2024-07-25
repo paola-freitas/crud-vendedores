@@ -1,63 +1,28 @@
 package com.exemplo.projeto.dto;
 
 import com.exemplo.projeto.enums.TipoContratacao;
-import com.sun.istack.NotNull;
+import lombok.Getter;
+import lombok.Setter;
 
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.Pattern;
 import java.time.LocalDate;
 
+@Getter
+@Setter
 public class VendedorDto {
-    @NotNull
+    @Pattern(regexp = "^\\d+-OUT|\\d+-CLT|\\d+-PJ$", message = "Matrícula deve terminar com '-OUT', '-CLT' ou '-PJ'")
     private String matricula;
 
-    @NotNull
+    @NotBlank(message = "Nome é obrigatório")
     private String nome;
 
     private LocalDate dataNascimento;
 
-    @NotNull
+    @NotBlank(message = "Documento é obrigatório")
     private String documento;
 
-    @NotNull
+    @NotBlank(message = "Tipo de contratação é obrigatório")
     private TipoContratacao tipoContratacao;
-
-    public String getMatricula() {
-        return matricula;
-    }
-
-    public void setMatricula(String matricula) {
-        this.matricula = matricula;
-    }
-
-    public String getNome() {
-        return nome;
-    }
-
-    public void setNome(String nome) {
-        this.nome = nome;
-    }
-
-    public LocalDate getDataNascimento() {
-        return dataNascimento;
-    }
-
-    public void setDataNascimento(LocalDate dataNascimento) {
-        this.dataNascimento = dataNascimento;
-    }
-
-    public String getDocumento() {
-        return documento;
-    }
-
-    public void setDocumento(String documento) {
-        this.documento = documento;
-    }
-
-    public TipoContratacao getTipoContratacao() {
-        return tipoContratacao;
-    }
-
-    public void setTipoContratacao(TipoContratacao tipoContratacao) {
-        this.tipoContratacao = tipoContratacao;
-    }
 
 }
