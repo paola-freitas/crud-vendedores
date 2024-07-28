@@ -5,5 +5,5 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 
 
 public interface IVendedorRepository extends MongoRepository<Vendedor, String> {
-
+    Vendedor findById(Long id);
 }

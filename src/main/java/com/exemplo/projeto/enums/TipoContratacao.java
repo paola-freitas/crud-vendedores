@@ -5,16 +5,16 @@ public enum TipoContratacao {
     CLT("CLT", "CLT"),
     PESSOA_JURIDICA("Pessoa Jurídica", "PJ");
 
-    private final String descricao;
+    private final String descriptor;
     private final String suffix;
 
-    TipoContratacao(String descricao, String suffix) {
-        this.descricao = descricao;
+    TipoContratacao(String descriptor, String suffix) {
+        this.descriptor = descriptor;
         this.suffix = suffix;
     }
 
-    public String getDescricao() {
-        return descricao;
+    public String getDescriptor() {
+        return descriptor;
     }
 
     public String getSuffix() {
