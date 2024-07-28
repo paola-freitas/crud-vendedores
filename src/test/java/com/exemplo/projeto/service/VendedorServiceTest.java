@@ -3,7 +3,8 @@ package com.exemplo.projeto.service;
 import com.exemplo.projeto.dto.VendedorDto;
 import com.exemplo.projeto.enums.TipoContratacao;
 import com.exemplo.projeto.exceptions.VendedorNotFoundException;
-import com.exemplo.projeto.exceptions.VendedorValidationException;
+import com.exemplo.projeto.exceptions.VendedorValidationDocumentoException;
+import com.exemplo.projeto.exceptions.VendedorValidationTipoContratacaoException;
 import com.exemplo.projeto.model.Vendedor;
 import com.exemplo.projeto.repository.IVendedorRepository;
 import com.exemplo.projeto.service.mapper.VendedorMapper;
@@ -51,7 +52,7 @@ public class VendedorServiceTest {
         vendedorDto.setDataNascimento(LocalDate.parse("1990-01-31"));
         vendedorDto.setDocumento("123.456.789-00");
         vendedorDto.setEmail("joao.silva@email.com");
-        vendedorDto.setTipoContratacao("OUTSOURCING");
+        vendedorDto.setTipoContratacao(TipoContratacao.OUTSOURCING);
         vendedorDto.setIdFilial(1L);
         vendedorDto.setNomeFilial("Nome Filial 1");
         return vendedorDto;
@@ -69,6 +70,90 @@ public class VendedorServiceTest {
         vendedorEntity.setNomeFilial("Nome Filial 1");
         return vendedorEntity;
     }
+
+    @Test
+    public void testCreateVendedorWithoutMandatoryValues() {
+        VendedorDto vendedorDto = createValidVendedorDTO();
+        vendedorDto.setMatricula(null);
+        vendedorDto.setDataNascimento(null);
+        vendedorDto.setIdFilial(null);
+
+        Vendedor vendedorEntity = VendedorMapper.toEntity(vendedorDto);
+        vendedorEntity.setId(10000001L);
+
+        when(vendedorRepository.save(any(Vendedor.class))).thenReturn(vendedorEntity);
+        when(vendedorRepository.findById(anyLong())).thenReturn(vendedorEntity);
+
+        assertTrue(vendedorService.createVendedor(vendedorDto));
+    }
+
+    @Test
+    public void testCreateVendedorWithInvalidDate() {
+        VendedorDto vendedorDto = createValidVendedorDTO();
+        vendedorDto.setDataNascimento(LocalDate.now().plusDays(10));
+
+        boolean result = vendedorService.createVendedor(vendedorDto);
+
+        assertFalse(result);
+    }
+
+    @Test
+    public void testCreateVendedorWithInvalidTipoContratacao() {
+        VendedorDto vendedorDto = createValidVendedorDTO();
+        vendedorDto.setTipoContratacao(null);
+
+        when(vendedorRepository.save(any(Vendedor.class))).thenReturn(null);
+
+        VendedorValidationTipoContratacaoException exception = assertThrows(VendedorValidationTipoContratacaoException.class, () -> {
+            vendedorService.createVendedor(vendedorDto);
+        });
+
+        assertEquals("Tipo contratação informado não encontrado.", exception.getMessage());
+    }
+
+    @Test
+    public void testCreateVendedorWithValidCPF() {
+        VendedorDto vendedorDto = createValidVendedorDTO();
+        vendedorDto.setTipoContratacao(TipoContratacao.CLT);
+        vendedorDto.setDocumento("123.456.789-09");
+
+        Vendedor vendedorEntity = VendedorMapper.toEntity(vendedorDto);
+        vendedorEntity.setId(10000001L);
+
+        when(vendedorRepository.save(any(Vendedor.class))).thenReturn(vendedorEntity);
+        when(vendedorRepository.findById(anyLong())).thenReturn(vendedorEntity);
+
+        assertTrue(vendedorService.createVendedor(vendedorDto));
+    }
+
+    @Test
+    public void testCreateVendedorWithValidCNPJButNotMatchWithTipoContratacao() {
+        VendedorDto vendedorDto = createValidVendedorDTO();
+        vendedorDto.setTipoContratacao(TipoContratacao.OUTSOURCING);
+        vendedorDto.setDocumento("12.345.678/0001-95");
+
+        VendedorValidationDocumentoException exception = assertThrows(VendedorValidationDocumentoException.class, () -> {
+            vendedorService.createVendedor(vendedorDto);
+        });
+
+        assertEquals("Documento com formato errado ou não condiz com o tipo de contratação informado.",
+                exception.getMessage());
+    }
+
+    @Test
+    public void testCreateVendedorWithInvalidCNPJ() {
+        VendedorDto vendedorDto = createValidVendedorDTO();
+        vendedorDto.setTipoContratacao(TipoContratacao.PESSOA_JURIDICA);
+        vendedorDto.setDocumento("12.345.678/0001-XX");
+
+        VendedorValidationDocumentoException exception = assertThrows(VendedorValidationDocumentoException.class, () -> {
+            vendedorService.createVendedor(vendedorDto);
+        });
+
+        assertEquals("Documento com formato errado ou não condiz com o tipo de contratação informado.",
+                exception.getMessage());
+    }
+
 
     @Test
     public void testUpdateVendedorExistsAndReceivesValidValues() {
@@ -106,110 +191,4 @@ public class VendedorServiceTest {
 
         assertEquals("Vendedor com matrícula 123-OUT não encontrado.", exception.getMessage());
     }
-
-
-
-    @Test
-    public void testCreateVendedorWithoutMandatoryValues() {
-        VendedorDto vendedorDto = createValidVendedorDTO();
-        vendedorDto.setMatricula(null);
-        vendedorDto.setDataNascimento(null);
-        vendedorDto.setIdFilial(null);
-
-        Vendedor vendedorEntity = VendedorMapper.toEntity(vendedorDto);
-        vendedorEntity.setId(10000001L);
-
-        when(vendedorRepository.save(any(Vendedor.class))).thenReturn(vendedorEntity);
-        when(vendedorRepository.findById(anyLong())).thenReturn(vendedorEntity);
-
-        assertTrue(vendedorService.createVendedor(vendedorDto));
-    }
-
-    @Test
-    public void testCreateVendedorWithInvalidDate() {
-        VendedorDto vendedorDto = createValidVendedorDTO();
-        vendedorDto.setDataNascimento(LocalDate.now().plusDays(10));
-
-        boolean result = vendedorService.createVendedor(vendedorDto);
-
-        assertFalse(result, "Data de nascimento deve ser uma data passada");
-    }
-
-    @Test
-    public void testCreateVendedorWithInvalidTipoContratacao() {
-        VendedorDto vendedorDto = createValidVendedorDTO();
-        vendedorDto.setTipoContratacao("INVALIDO");
-
-        when(vendedorRepository.save(any(Vendedor.class))).thenReturn(null);
-
-        VendedorValidationException exception = assertThrows(VendedorValidationException.class, () -> {
-            vendedorService.createVendedor(vendedorDto);
-        });
-
-        assertEquals("Tipo contratação informado está incorreto.", exception.getMessage());
-    }
-
-    /*@Test
-    public void testCreateVendedorWithValidCPF() {
-        VendedorDto vendedorDto = createValidVendedorDTO();
-        vendedorDto.setTipoContratacao("CLT");
-        vendedorDto.setDocumento("123.456.789-09");
-
-        when(vendedorRepository.save(any(Vendedor.class))).thenReturn(null);
-        when(vendedorRepository.findById(anyLong())).thenReturn(new Vendedor());
-
-        boolean result = vendedorService.createVendedor(vendedorDto);
-
-        assertTrue(result, "Vendedor should be created with a valid CPF");
-    }*/
-
-    @Test
-    public void testCreateVendedorWithInvalidCPF() {
-        VendedorDto vendedorDto = createValidVendedorDTO();
-        vendedorDto.setTipoContratacao("CLT");
-        vendedorDto.setDocumento("123.456.789-0X"); // CPF inválido
-
-        boolean result = vendedorService.createVendedor(vendedorDto);
-
-        assertFalse(result, "Vendedor should not be created with an invalid CPF");
-    }
-
-    @Test
-    public void testCreateVendedorWithValidCNPJ() {
-        VendedorDto vendedorDto = createValidVendedorDTO();
-        vendedorDto.setTipoContratacao("PJ");
-        vendedorDto.setDocumento("12.345.678/0001-95"); // CNPJ válido
-
-        when(vendedorRepository.save(any(Vendedor.class))).thenReturn(new Vendedor());
-        when(vendedorRepository.findById(anyLong())).thenReturn(new Vendedor());
-
-        boolean result = vendedorService.createVendedor(vendedorDto);
-
-        assertTrue(result, "Vendedor should be created with a valid CNPJ");
-    }
-
-    @Test
-    public void testCreateVendedorWithInvalidCNPJ() {
-        VendedorDto vendedorDto = createValidVendedorDTO();
-        vendedorDto.setTipoContratacao("PJ");
-        vendedorDto.setDocumento("12.345.678/0001-XX"); // CNPJ inválido
-
-        boolean result = vendedorService.createVendedor(vendedorDto);
-
-        assertFalse(result, "Vendedor should not be created with an invalid CNPJ");
-    }
-
-
-    /*
-
-    @Test
-    public void testExtractIdFromMatriculaInvalid() {
-        String invalidMatricula = "123OUT";
-
-        assertThrows(IllegalArgumentException.class, () -> {
-            vendedorService.extractIdFromMatricula(invalidMatricula);
-        });
-    }
-
- */
 }

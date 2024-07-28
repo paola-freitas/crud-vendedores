@@ -1,9 +1,11 @@
 package com.exemplo.projeto.dto;
 
+import com.exemplo.projeto.enums.TipoContratacao;
 import lombok.*;
 
 import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Past;
 import javax.validation.constraints.Pattern;
 import java.time.LocalDate;
@@ -27,9 +29,8 @@ public class VendedorDto {
     @NotBlank(message = "E-mail é obrigatório")
     private String email;
 
-    @NotBlank(message = "Tipo de contratação é obrigatório")
-    @Pattern(regexp = "CLT|PJ|OUT", message = "Tipo de contratação deve ser 'CLT', 'PJ' ou 'OUT'")
-    private String tipoContratacao;
+    @NotNull(message = "Tipo de contratação é obrigatório")
+    private TipoContratacao tipoContratacao;
 
     private Long idFilial;
 

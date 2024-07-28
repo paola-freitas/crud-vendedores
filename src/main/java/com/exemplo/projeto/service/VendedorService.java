@@ -3,12 +3,16 @@ package com.exemplo.projeto.service;
 import com.exemplo.projeto.dto.VendedorDto;
 import com.exemplo.projeto.enums.TipoContratacao;
 import com.exemplo.projeto.exceptions.VendedorNotFoundException;
-import com.exemplo.projeto.exceptions.VendedorValidationException;
+import com.exemplo.projeto.exceptions.VendedorValidationDocumentoException;
+import com.exemplo.projeto.exceptions.VendedorValidationTipoContratacaoException;
 import com.exemplo.projeto.service.mapper.VendedorMapper;
 import com.exemplo.projeto.model.Vendedor;
 import com.exemplo.projeto.repository.IVendedorRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.time.LocalDate;
+import java.time.Period;
 
 @Service
 public class VendedorService implements IVendedorService {
@@ -26,8 +30,9 @@ public class VendedorService implements IVendedorService {
         if (vendedorDto == null)
             return false;
 
-        if (validationOfTipoContratacao(vendedorDto.getTipoContratacao())
-                || validationOfDocumentoByTipoContratacao(vendedorDto.getDocumento(), vendedorDto.getTipoContratacao()))
+        if (!validationOfTipoContratacao(vendedorDto.getTipoContratacao())
+                || !validationOfDocumentoByTipoContratacao(vendedorDto.getDocumento(), vendedorDto.getTipoContratacao())
+                || !validationOfDataNascimento(vendedorDto.getDataNascimento()))
             return false;
 
 
@@ -62,7 +67,7 @@ public class VendedorService implements IVendedorService {
                 vendedorUpdated.getDataNascimento() : null);
         vendedorWithNewValues.setDocumento(vendedorUpdated.getDocumento());
         vendedorWithNewValues.setEmail(vendedorUpdated.getEmail());
-        vendedorWithNewValues.setTipoContratacao(TipoContratacao.valueOf(vendedorUpdated.getTipoContratacao()));
+        vendedorWithNewValues.setTipoContratacao(vendedorUpdated.getTipoContratacao());
         vendedorWithNewValues.setIdFilial(vendedorUpdated.getIdFilial());
         vendedorWithNewValues.setNomeFilial(vendedorUpdated.getNomeFilial());
 
@@ -81,20 +86,26 @@ public class VendedorService implements IVendedorService {
 
     }
 
-    private boolean validationOfTipoContratacao(String tipoContratacao) {
+    private boolean validationOfTipoContratacao(TipoContratacao tipoContratacao) {
         try {
-            TipoContratacao tipoContratacaoEnum = TipoContratacao.valueOf(tipoContratacao);
+            TipoContratacao tipoContratacaoEnum = TipoContratacao.valueOf(String.valueOf(tipoContratacao));
         } catch (IllegalArgumentException e) {
-            throw new VendedorValidationException();
+            throw new VendedorValidationTipoContratacaoException();
         }
         return true;
     }
 
-    private boolean validationOfDocumentoByTipoContratacao(String documento, String tipoContratacao) {
-        if ("PJ".equalsIgnoreCase(tipoContratacao) || "Pessoa Juridica".equalsIgnoreCase(tipoContratacao))
-            return isValidCNPJ(documento);
-        else
-            return isValidCPF(documento);
+    private boolean validationOfDocumentoByTipoContratacao(String documento, TipoContratacao tipoContratacao) {
+        boolean validCPF = isValidCPF(documento);
+        boolean validCNPJ = isValidCNPJ(documento);
+
+        if (tipoContratacao == TipoContratacao.PESSOA_JURIDICA && !validCNPJ) {
+            throw new VendedorValidationDocumentoException();
+        } else if ((tipoContratacao == TipoContratacao.OUTSOURCING || tipoContratacao == TipoContratacao.CLT)
+                    && !validCPF) {
+            throw new VendedorValidationDocumentoException();
+        }
+        return true;
     }
 
     private boolean isValidCPF(String cpf) {
@@ -103,6 +114,16 @@ public class VendedorService implements IVendedorService {
 
     private boolean isValidCNPJ(String cnpj) {
         return cnpj != null && cnpj.matches("\\d{2}\\.\\d{3}\\.\\d{3}/\\d{4}-\\d{2}");
+    }
+
+    private boolean validationOfDataNascimento(LocalDate date) {
+        if (date == null)
+            return true;
+        if (date.isAfter(LocalDate.now())) {
+            return false;
+        }
+        int idade = Period.between(date, LocalDate.now()).getYears();
+        return idade >= 18;
     }
 
     private Long extractIdFromMatricula(String matricula) {

@@ -43,7 +43,7 @@ public class VendedorMapperTest {
         dto.setNome("Ana Maria");
         dto.setDocumento("12.123.123/0001-99");
         dto.setEmail("ana.maria@email.com.br");
-        dto.setTipoContratacao("PESSOA_JURIDICA");
+        dto.setTipoContratacao(TipoContratacao.PESSOA_JURIDICA);
         dto.setDataNascimento(LocalDate.parse("1990-12-12"));
         dto.setIdFilial(123L);
         dto.setNomeFilial("Filial teste 2");

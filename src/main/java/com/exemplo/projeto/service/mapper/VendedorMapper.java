@@ -16,13 +16,12 @@ public class VendedorMapper {
                 vendedor.getDataNascimento() : null);
         dto.setDocumento(vendedor.getDocumento());
         dto.setEmail(vendedor.getEmail());
-        dto.setTipoContratacao(vendedor.getTipoContratacao() != null ?
-                vendedor.getTipoContratacao().getDescriptor() : null);
+        dto.setTipoContratacao(vendedor.getTipoContratacao());
         dto.setIdFilial(vendedor.getIdFilial());
         dto.setNomeFilial(vendedor.getNomeFilial());
 
         if (vendedor.getId() != null && vendedor.getTipoContratacao() != null) {
-            String suffix = vendedor.getTipoContratacao().getSuffix();
+            String suffix = String.valueOf(vendedor.getTipoContratacao());
             dto.setMatricula(vendedor.getId() + "-" + suffix);
         }
         return dto;
@@ -39,8 +38,7 @@ public class VendedorMapper {
                 vendedorDto.getDataNascimento() : null);
         entity.setDocumento(vendedorDto.getDocumento());
         entity.setEmail(vendedorDto.getEmail());
-        entity.setTipoContratacao(vendedorDto.getTipoContratacao() != null ?
-                TipoContratacao.valueOf(vendedorDto.getTipoContratacao()) : null);
+        entity.setTipoContratacao(vendedorDto.getTipoContratacao());
         entity.setIdFilial(vendedorDto.getIdFilial() != null ?
                 vendedorDto.getIdFilial() : null);
         entity.setNomeFilial(vendedorDto.getNomeFilial());
