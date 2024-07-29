@@ -3,7 +3,6 @@ package com.exemplo.projeto.dto;
 import com.exemplo.projeto.enums.TipoContratacao;
 import lombok.*;
 
-import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Past;
@@ -32,9 +31,7 @@ public class VendedorDto {
     @NotNull(message = "Tipo de contratação é obrigatório")
     private TipoContratacao tipoContratacao;
 
-    private Long idFilial;
-
-    @NotBlank(message = "Filial é obrigatória")
-    private String nomeFilial;
+    @NotNull(message = "Filial é obrigatória")
+    private FilialDto filial;
 
 }

@@ -1,9 +1,8 @@
 package com.exemplo.projeto.repository;
 
 import com.exemplo.projeto.model.Vendedor;
-import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.jpa.repository.JpaRepository;
 
+public interface IVendedorRepository extends JpaRepository<Vendedor, Long> {
 
-public interface IVendedorRepository extends MongoRepository<Vendedor, String> {
-    Vendedor findById(Long id);
 }

@@ -4,30 +4,29 @@ import com.exemplo.projeto.enums.TipoContratacao;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.bson.types.ObjectId;
-import org.springframework.data.mongodb.core.mapping.Document;
-
 import javax.annotation.PostConstruct;
 import javax.persistence.*;
 import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
 import java.time.LocalDate;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Document(collection = "vendedor")
+@Entity
+@Table(name = "vendedor")
 public class Vendedor {
 
     private static long counter = 10000000L;
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     private String matricula;
 
     @NotBlank(message = "Nome é obrigatório")
     private String nome;
-
 
     private LocalDate dataNascimento;
 
@@ -37,21 +36,14 @@ public class Vendedor {
     @NotBlank(message = "E-mail é obrigatório")
     private String email;
 
-    @NotBlank(message = "Tipo de contratação é obrigatório")
+    @NotNull(message = "Tipo de contratação é obrigatório")
+    @Enumerated(EnumType.STRING)
     private TipoContratacao tipoContratacao;
 
+    @NotNull(message = "IdFilial é obrigatória")
     private Long idFilial;
 
-    @NotBlank(message = "Filial é obrigatória")
     private String nomeFilial;
-
-    // Matrícula é um campo calculado, não persistente
-    /*public String getMatricula() {
-        if (id != null && tipoContratacao != null) {
-            return id + "-" + tipoContratacao.getSuffix();
-        }
-        return null;
-    }*/
 
     @PostConstruct
     private void init() {

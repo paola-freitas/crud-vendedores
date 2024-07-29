@@ -16,7 +16,7 @@ public class VendedorController {
     private IVendedorService vendedorService;
 
     @PostMapping
-    public ResponseEntity<Void> createVendedor(@RequestBody @Valid VendedorDto vendedorDto) {
+    public ResponseEntity<Void> createVendedor(@RequestBody VendedorDto vendedorDto) {
         return vendedorService.createVendedor(vendedorDto) ?
                 ResponseEntity.noContent().build() : ResponseEntity.badRequest().build();
     }

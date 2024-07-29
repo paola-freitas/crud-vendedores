@@ -42,12 +42,6 @@
             <optional>true</optional>
         </dependency>
 
-        <!-- Dependência para MongoDB -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-mongodb</artifactId>
-        </dependency>
-
         <!-- Dependências de teste -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -98,6 +92,13 @@
             <version>1.5.3.Final</version>
             <scope>provided</scope>
         </dependency>
+
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>42.6.0</version> <!-- Verifique se é a versão mais recente -->
+        </dependency>
+
 
     </dependencies>
 

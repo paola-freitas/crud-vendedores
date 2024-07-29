@@ -1,11 +1,14 @@
 package com.exemplo.projeto.service;
 
+import com.exemplo.projeto.dto.FilialDto;
 import com.exemplo.projeto.dto.VendedorDto;
 import com.exemplo.projeto.enums.TipoContratacao;
 import com.exemplo.projeto.exceptions.VendedorNotFoundException;
 import com.exemplo.projeto.exceptions.VendedorValidationDocumentoException;
 import com.exemplo.projeto.exceptions.VendedorValidationTipoContratacaoException;
+import com.exemplo.projeto.model.Filial;
 import com.exemplo.projeto.model.Vendedor;
+import com.exemplo.projeto.repository.IFilialRepository;
 import com.exemplo.projeto.repository.IVendedorRepository;
 import com.exemplo.projeto.service.mapper.VendedorMapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -18,6 +21,7 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.LocalDate;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -27,6 +31,9 @@ import static org.mockito.Mockito.when;
 public class VendedorServiceTest {
     @Mock
     private IVendedorRepository vendedorRepository;
+
+    @Mock
+    private IFilialRepository filialRepository;
 
     @InjectMocks
     private VendedorService vendedorService;
@@ -45,6 +52,34 @@ public class VendedorServiceTest {
         Vendedor validVendedorEntity = createValidVendedorEntity();
     }
 
+    private static FilialDto createValidFilialDTO() {
+        FilialDto filialDto = new FilialDto();
+        filialDto.setId(1L);
+        filialDto.setNome("Filial 1");
+        filialDto.setCnpj("11.222.333/4444-55");
+        filialDto.setCidade("Cidade");
+        filialDto.setUf("UF");
+        filialDto.setAtivo(true);
+        filialDto.setTipo("Ativo teste");
+        filialDto.setDataCadastro(LocalDate.parse("1990-12-12"));
+        filialDto.setUltimaAtualizacao(LocalDate.parse("1990-12-12"));
+        return filialDto;
+    }
+
+    private static Filial createValidFilialEntity() {
+        Filial filialEntity = new Filial();
+        filialEntity.setId(1L);
+        filialEntity.setNome("Filial 1");
+        filialEntity.setCnpj("11.222.333/4444-55");
+        filialEntity.setCidade("Cidade");
+        filialEntity.setUf("UF");
+        filialEntity.setAtivo(true);
+        filialEntity.setTipo("Ativo teste");
+        filialEntity.setDataCadastro(LocalDate.parse("1990-12-12"));
+        filialEntity.setUltimaAtualizacao(LocalDate.parse("1990-12-12"));
+        return filialEntity;
+    }
+
     private static VendedorDto createValidVendedorDTO() {
         VendedorDto vendedorDto = new VendedorDto();
         vendedorDto.setMatricula("123-OUT");
@@ -53,8 +88,7 @@ public class VendedorServiceTest {
         vendedorDto.setDocumento("123.456.789-00");
         vendedorDto.setEmail("joao.silva@email.com");
         vendedorDto.setTipoContratacao(TipoContratacao.OUTSOURCING);
-        vendedorDto.setIdFilial(1L);
-        vendedorDto.setNomeFilial("Nome Filial 1");
+        vendedorDto.setFilial(createValidFilialDTO());
         return vendedorDto;
     }
 
@@ -66,7 +100,7 @@ public class VendedorServiceTest {
         vendedorEntity.setDocumento("123.456.789-00");
         vendedorEntity.setEmail("joao.silva@email.com");
         vendedorEntity.setTipoContratacao(TipoContratacao.OUTSOURCING);
-        vendedorEntity.setIdFilial(null);
+        vendedorEntity.setIdFilial(1L);
         vendedorEntity.setNomeFilial("Nome Filial 1");
         return vendedorEntity;
     }
@@ -76,13 +110,12 @@ public class VendedorServiceTest {
         VendedorDto vendedorDto = createValidVendedorDTO();
         vendedorDto.setMatricula(null);
         vendedorDto.setDataNascimento(null);
-        vendedorDto.setIdFilial(null);
 
         Vendedor vendedorEntity = VendedorMapper.toEntity(vendedorDto);
         vendedorEntity.setId(10000001L);
 
         when(vendedorRepository.save(any(Vendedor.class))).thenReturn(vendedorEntity);
-        when(vendedorRepository.findById(anyLong())).thenReturn(vendedorEntity);
+        when(vendedorRepository.findById(anyLong())).thenReturn(Optional.of(vendedorEntity));
 
         assertTrue(vendedorService.createVendedor(vendedorDto));
     }
@@ -121,7 +154,7 @@ public class VendedorServiceTest {
         vendedorEntity.setId(10000001L);
 
         when(vendedorRepository.save(any(Vendedor.class))).thenReturn(vendedorEntity);
-        when(vendedorRepository.findById(anyLong())).thenReturn(vendedorEntity);
+        when(vendedorRepository.findById(anyLong())).thenReturn(Optional.of(vendedorEntity));
 
         assertTrue(vendedorService.createVendedor(vendedorDto));
     }
@@ -154,6 +187,32 @@ public class VendedorServiceTest {
                 exception.getMessage());
     }
 
+    @Test
+    public void testReadVendedorWithValidMatricula() {
+        String matricula = "123-OUT";
+        Vendedor vendedor = createValidVendedorEntity();
+
+        when(vendedorRepository.findById(123L)).thenReturn(Optional.of(vendedor));
+        when(filialRepository.existsById(1L)).thenReturn(true);
+        when(filialRepository.findById(1L)).thenReturn(Optional.of(createValidFilialEntity()));
+
+        VendedorDto vendedorDto = vendedorService.getVendedorByMatricula(matricula);
+
+        assertEquals("João Silva", vendedorDto.getNome());
+    }
+
+    @Test
+    public void testReadVendedorWithMatriculaNull() {
+        String matricula = null;
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            vendedorService.getVendedorByMatricula(matricula);
+        });
+
+        assertEquals("A matrícula não pode ser nula.",
+                exception.getMessage());
+    }
+
 
     @Test
     public void testUpdateVendedorExistsAndReceivesValidValues() {
@@ -167,11 +226,11 @@ public class VendedorServiceTest {
                 "123.456.789-00",
                 "email@email.com",
                 TipoContratacao.OUTSOURCING,
-                null,
+                1L,
                 "Nome Filial 1"
         );
 
-        when(vendedorRepository.findById(123L)).thenReturn(existVendedor);
+        when(vendedorRepository.existsById(existVendedor.getId())).thenReturn(true);
         when(vendedorRepository.save(existVendedor)).thenReturn(existVendedor);
 
         VendedorDto updatedDto = vendedorService.updateVendedor(vendedorDto);
@@ -183,12 +242,36 @@ public class VendedorServiceTest {
     public void testUpdateVendedorNotFoundException() {
         VendedorDto vendedorDto = createValidVendedorDTO();
 
-        when(vendedorRepository.findById(123L)).thenReturn(null);
+        when(vendedorRepository.existsById(123L)).thenReturn(false);
 
         VendedorNotFoundException exception = assertThrows(VendedorNotFoundException.class, () -> {
             vendedorService.updateVendedor(vendedorDto);
         });
 
         assertEquals("Vendedor com matrícula 123-OUT não encontrado.", exception.getMessage());
+    }
+
+    @Test
+    public void testDeleteVendedorWithMatriculaNull() {
+        String matricula = null;
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            vendedorService.deleteVendedor(matricula);
+        });
+
+        assertEquals("A matrícula não pode ser nula.",
+                exception.getMessage());
+    }
+
+    @Test
+    public void testDeleteVendedorExist() {
+        String matricula = "123-OUT";
+
+        when(vendedorRepository.existsById(123L)).thenReturn(true);
+        vendedorRepository.deleteById(123L);
+
+        boolean result = vendedorService.deleteVendedor(matricula);
+
+        assertTrue(result);
     }
 }

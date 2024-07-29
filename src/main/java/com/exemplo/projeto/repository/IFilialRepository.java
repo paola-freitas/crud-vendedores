@@ -2,7 +2,9 @@ package com.exemplo.projeto.repository;
 
 import com.exemplo.projeto.model.Filial;
 import com.exemplo.projeto.model.Vendedor;
-import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface IFilialRepository extends MongoRepository<Filial, String> {
+import java.util.Optional;
+
+public interface IFilialRepository extends JpaRepository<Filial, Long> {
 }
