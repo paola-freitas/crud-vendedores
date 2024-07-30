@@ -11,14 +11,15 @@ public class VendedorMapper {
         if (vendedor == null)
             throw new VendedorNotFoundException();
         VendedorDto dto = new VendedorDto();
+        TipoContratacao tipoContratacao = vendedor.getTipoContratacao();
         dto.setNome(vendedor.getNome());
         dto.setDataNascimento(vendedor.getDataNascimento());
         dto.setDocumento(vendedor.getDocumento());
         dto.setEmail(vendedor.getEmail());
-        dto.setTipoContratacao(vendedor.getTipoContratacao());
+        dto.setTipoContratacao(tipoContratacao);
 
         if (vendedor.getId() != null && vendedor.getTipoContratacao() != null) {
-            String suffix = String.valueOf(vendedor.getTipoContratacao().getSuffix());
+            String suffix = tipoContratacao.getSuffix();
             dto.setMatricula(vendedor.getId() + "-" + suffix);
         }
         return dto;
@@ -29,7 +30,6 @@ public class VendedorMapper {
             throw new VendedorNotFoundException();
         Vendedor entity = new Vendedor();
         entity.setNome(vendedorDto.getNome());
-        entity.setMatricula(vendedorDto.getMatricula());
         entity.setDataNascimento(vendedorDto.getDataNascimento());
         entity.setDocumento(vendedorDto.getDocumento());
         entity.setEmail(vendedorDto.getEmail());

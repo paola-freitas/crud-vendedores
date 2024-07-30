@@ -1,5 +1,8 @@
 package com.exemplo.projeto.enums;
 
+import lombok.Getter;
+
+@Getter
 public enum TipoContratacao {
     OUTSOURCING("Outsourcing", "OUT"),
     CLT("CLT", "CLT"),
@@ -13,11 +16,4 @@ public enum TipoContratacao {
         this.suffix = suffix;
     }
 
-    public String getDescriptor() {
-        return descriptor;
-    }
-
-    public String getSuffix() {
-        return suffix;
-    }
 }

@@ -22,20 +22,20 @@ public class VendedorController {
     }
 
     @GetMapping("/{matricula}")
-    public ResponseEntity<VendedorDto> readVendedorByMatricula(@PathVariable String matricula) {
+    public ResponseEntity<VendedorDto> readVendedorByMatricula(@PathVariable @Valid String matricula) {
         VendedorDto vendedorDto = vendedorService.getVendedorByMatricula(matricula);
         return vendedorDto != null ?
                 ResponseEntity.ok(vendedorDto) : ResponseEntity.notFound().build();
     }
 
     @PutMapping
-    public ResponseEntity<VendedorDto> updateVendedor(@RequestBody @Valid VendedorDto vendedorDto) {
+    public ResponseEntity<VendedorDto> updateVendedor(@RequestBody VendedorDto vendedorDto) {
         return vendedorDto != null ?
                 ResponseEntity.ok(vendedorService.updateVendedor(vendedorDto)) : ResponseEntity.badRequest().build();
     }
 
     @DeleteMapping("/{matricula}")
-    public ResponseEntity<Void> deleteVendedor(@PathVariable String matricula) {
+    public ResponseEntity<Void> deleteVendedor(@PathVariable @Valid String matricula) {
         return vendedorService.deleteVendedor(matricula) ?
                 ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
     }

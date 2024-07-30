@@ -1,9 +1,9 @@
 package com.exemplo.projeto.service;
 
-import com.exemplo.projeto.dto.FilialDto;
 import com.exemplo.projeto.dto.VendedorDto;
 import com.exemplo.projeto.enums.TipoContratacao;
 import com.exemplo.projeto.exceptions.VendedorNotFoundException;
+import com.exemplo.projeto.exceptions.VendedorValidationDataNascimentoException;
 import com.exemplo.projeto.exceptions.VendedorValidationDocumentoException;
 import com.exemplo.projeto.exceptions.VendedorValidationTipoContratacaoException;
 import com.exemplo.projeto.model.Filial;
@@ -15,6 +15,7 @@ import com.exemplo.projeto.repository.IVendedorRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import javax.transaction.Transactional;
 import java.time.LocalDate;
 import java.time.Period;
 import java.util.Optional;
@@ -33,51 +34,49 @@ public class VendedorService implements IVendedorService {
         this.filialRepository = filialRepository;
     }
 
-    @Override
+    @Transactional
     public boolean createVendedor(VendedorDto vendedorDto) {
-        if (vendedorDto == null)
-            return false;
-        if (!validationOfTipoContratacao(vendedorDto.getTipoContratacao())
-                || !validationOfDocumentoByTipoContratacao(vendedorDto.getDocumento(), vendedorDto.getTipoContratacao())
-                || !validationOfDataNascimento(vendedorDto.getDataNascimento())
-                || !validationOfEmail(vendedorDto.getEmail()))
+        if (vendedorDto == null || isValidVendedorDto(vendedorDto))
             return false;
 
         Vendedor vendedorEntity = VendedorMapper.toEntity(vendedorDto);
         Vendedor vendedorCreated = vendedorRepository.save(vendedorEntity);
-        Optional<Vendedor> vendedorWasCreated = vendedorRepository.findById(vendedorCreated.getId());
 
-        return vendedorWasCreated.isPresent();
+        String generatedMatricula = generateNewMatricula(vendedorCreated.getTipoContratacao(), vendedorCreated.getId());
+        vendedorRepository.updateMatricula(vendedorCreated.getId(), generatedMatricula);
+
+        return vendedorRepository.existsById(vendedorCreated.getId());
     }
 
     @Override
     public VendedorDto getVendedorByMatricula(String matricula) {
-        if (matricula == null) {
-            throw new IllegalArgumentException("A matrícula não pode ser nula.");
+        validateNotNull(matricula, "A matrícula não pode ser nula.");
+        if (!vendedorRepository.existsByMatricula(matricula)) {
+            return null;
         }
-
         Long id = extractIdFromMatricula(matricula);
-        Optional<Vendedor> vendedorOptional = vendedorRepository.findById(id);
-
-        Vendedor vendedor = vendedorOptional.orElseThrow(() -> new VendedorNotFoundException(matricula));
-
-        if (vendedor.getIdFilial() == null) {
-            throw new IllegalArgumentException("O idFilial não pode ser nulo.");
+        if(!vendedorRepository.existsById(id)) {
+            return null;
         }
+        Vendedor vendedor = vendedorRepository.findById(id)
+                .orElseThrow(() -> new VendedorNotFoundException(matricula));
 
+        validateNotNull(vendedor.getIdFilial(), "O idFilial não pode ser nulo.");
         VendedorDto vendedorDto = VendedorMapper.toDTO(vendedor);
-        boolean filialExists = filialRepository.existsById(vendedor.getIdFilial());
-        if (filialExists){
-            Optional<Filial> filial = filialRepository.findById(vendedor.getIdFilial());
-            vendedorDto.setFilial(FilialMapper.toDto(filial.get()));
-        }
+        filialRepository.findById(vendedor.getIdFilial())
+                .ifPresent(filial -> vendedorDto.setFilial(FilialMapper.toDto(filial)));
+
         return vendedorDto;
     }
 
-    @Override
+    @Transactional
     public VendedorDto updateVendedor(VendedorDto vendedorWillBeUpdated) {
+        if (vendedorWillBeUpdated == null || isValidVendedorDto(vendedorWillBeUpdated))
+            return null;
+
         String matriculaToBeUpdate = vendedorWillBeUpdated.getMatricula();
-        boolean vendedorExists = vendedorRepository.existsById(extractIdFromMatricula(matriculaToBeUpdate));
+        Long id = extractIdFromMatricula(matriculaToBeUpdate);
+        boolean vendedorExists = vendedorRepository.existsById(id);
         if (!vendedorExists)
             throw new VendedorNotFoundException(matriculaToBeUpdate);
 
@@ -89,8 +88,13 @@ public class VendedorService implements IVendedorService {
         vendedorWithNewValues.setDocumento(vendedorWillBeUpdated.getDocumento());
         vendedorWithNewValues.setEmail(vendedorWillBeUpdated.getEmail());
         vendedorWithNewValues.setTipoContratacao(vendedorWillBeUpdated.getTipoContratacao());
+        vendedorWithNewValues.updatedMatricula();
         vendedorWithNewValues.setIdFilial(vendedorWillBeUpdated.getFilial().getId());
 
+        if(vendedorWillBeUpdated.getTipoContratacao() != vendedorWithNewValues.getTipoContratacao()) {
+            String generatedMatricula = generateNewMatricula(vendedorWithNewValues.getTipoContratacao(), vendedorWithNewValues.getId());
+            vendedorRepository.updateMatricula(vendedorWithNewValues.getId(), generatedMatricula);
+        }
         vendedorRepository.save(vendedorWithNewValues);
 
         return VendedorMapper.toDTO(vendedorWithNewValues);
@@ -98,19 +102,26 @@ public class VendedorService implements IVendedorService {
 
     @Override
     public boolean deleteVendedor(String matricula) {
-        if (matricula == null) {
-            throw new IllegalArgumentException("A matrícula não pode ser nula.");
-        }
+        validateNotNull(matricula, "A matrícula não pode ser nula.");
+
         Long id = extractIdFromMatricula(matricula);
-        boolean vendedorExists = vendedorRepository.existsById(id);
-        if (!vendedorExists) {
+        if (!vendedorRepository.existsById(id)) {
             return false;
         }
+
         vendedorRepository.deleteById(id);
         return true;
     }
 
-    private boolean validationOfTipoContratacao(TipoContratacao tipoContratacao) {
+    private boolean isValidVendedorDto(VendedorDto vendedorDto) {
+        return isValidTipoContratacao(vendedorDto.getTipoContratacao())
+                && isValidDocumentoByTipoContratacao(vendedorDto.getDocumento(), vendedorDto.getTipoContratacao())
+                && isValidDataNascimento(vendedorDto.getDataNascimento())
+                && isValidEmail(vendedorDto.getEmail())
+                && vendedorDto.getFilial() == null;
+    }
+
+    private boolean isValidTipoContratacao(TipoContratacao tipoContratacao) {
         try {
             TipoContratacao tipoContratacaoEnum = TipoContratacao.valueOf(String.valueOf(tipoContratacao));
         } catch (IllegalArgumentException e) {
@@ -119,9 +130,12 @@ public class VendedorService implements IVendedorService {
         return true;
     }
 
-    private boolean validationOfDocumentoByTipoContratacao(String documento, TipoContratacao tipoContratacao) {
-        boolean validCPF = validationOfCPF(documento);
-        boolean validCNPJ = validationOfCNPJ(documento);
+    private boolean isValidDocumentoByTipoContratacao(String documento, TipoContratacao tipoContratacao) {
+        boolean validCPF = isValidCPF(documento);
+        boolean validCNPJ = isValidCNPJ(documento);
+
+        if(tipoContratacao == null)
+            return false;
 
         if (tipoContratacao == TipoContratacao.PESSOA_JURIDICA && !validCNPJ) {
             throw new VendedorValidationDocumentoException();
@@ -132,25 +146,25 @@ public class VendedorService implements IVendedorService {
         return true;
     }
 
-    private boolean validationOfCPF(String cpf) {
+    private boolean isValidCPF(String cpf) {
         return cpf != null && cpf.matches("\\d{3}\\.\\d{3}\\.\\d{3}-\\d{2}");
     }
 
-    private boolean validationOfCNPJ(String cnpj) {
+    private boolean isValidCNPJ(String cnpj) {
         return cnpj != null && cnpj.matches("\\d{2}\\.\\d{3}\\.\\d{3}/\\d{4}-\\d{2}");
     }
 
-    private boolean validationOfDataNascimento(LocalDate date) {
-        if (date == null)
-            return true;
-        if (date.isAfter(LocalDate.now())) {
-            return false;
+    private boolean isValidDataNascimento(LocalDate date) {
+        if (date != null) {
+            int idade = Period.between(date, LocalDate.now()).getYears();
+            if (date.isAfter(LocalDate.now()) || idade <= 18) {
+                throw new VendedorValidationDataNascimentoException();
+            }
         }
-        int idade = Period.between(date, LocalDate.now()).getYears();
-        return idade >= 18;
+        return true;
     }
 
-    private boolean validationOfEmail(String email) {
+    private boolean isValidEmail(String email) {
         Pattern pattern = Pattern.compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$");
         Matcher matcher = pattern.matcher(email);
         return matcher.matches();
@@ -162,4 +176,23 @@ public class VendedorService implements IVendedorService {
         String[] parts = matricula.split("-");
         return Long.valueOf(parts[0]);
     }
+
+    private String extractTipoContratacaoFromMatricula(String matricula) {
+        if (matricula == null)
+            return null;
+        String[] parts = matricula.split("-");
+        return parts[1];
+    }
+
+    private String generateNewMatricula(TipoContratacao tipoContratacao, Long id) {
+        String suffix = tipoContratacao.getSuffix();
+        return id + "-" + suffix;
+    }
+
+    private void validateNotNull(Object object, String message) {
+        if (object == null) {
+            throw new IllegalArgumentException(message);
+        }
+    }
+
 }

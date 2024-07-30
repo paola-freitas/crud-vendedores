@@ -4,6 +4,7 @@ import com.exemplo.projeto.dto.FilialDto;
 import com.exemplo.projeto.dto.VendedorDto;
 import com.exemplo.projeto.enums.TipoContratacao;
 import com.exemplo.projeto.model.Vendedor;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
@@ -11,8 +12,6 @@ import java.time.LocalDate;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class VendedorMapperTest {
-
-    LocalDate dataAtual = LocalDate.now();
 
     @Test
     public void testToDTO() {
@@ -40,7 +39,6 @@ public class VendedorMapperTest {
 
     @Test
     public void testToEntity() {
-        VendedorDto dto = new VendedorDto();
         FilialDto filial = new FilialDto(
                 1L,
                 "Filial 1",
@@ -52,7 +50,7 @@ public class VendedorMapperTest {
                 LocalDate.parse("1990-12-12"),
                 LocalDate.parse("1990-12-12")
         );
-
+        VendedorDto dto = new VendedorDto();
         dto.setNome("Ana Maria");
         dto.setDocumento("12.123.123/0001-99");
         dto.setEmail("ana.maria@email.com.br");
@@ -66,7 +64,7 @@ public class VendedorMapperTest {
         assertEquals("12.123.123/0001-99", entity.getDocumento());
         assertEquals("ana.maria@email.com.br", entity.getEmail());
         assertEquals(TipoContratacao.PESSOA_JURIDICA, entity.getTipoContratacao());
-        assertEquals(LocalDate.of(1990, 12, 12), entity.getDataNascimento());
+        Assertions.assertEquals(LocalDate.of(1990, 12, 12), entity.getDataNascimento());
         assertEquals(1L, entity.getIdFilial());
     }
 }

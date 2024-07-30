@@ -4,6 +4,7 @@ import com.exemplo.projeto.dto.FilialDto;
 import com.exemplo.projeto.dto.VendedorDto;
 import com.exemplo.projeto.enums.TipoContratacao;
 import com.exemplo.projeto.exceptions.VendedorNotFoundException;
+import com.exemplo.projeto.exceptions.VendedorValidationDataNascimentoException;
 import com.exemplo.projeto.exceptions.VendedorValidationDocumentoException;
 import com.exemplo.projeto.exceptions.VendedorValidationTipoContratacaoException;
 import com.exemplo.projeto.model.Filial;
@@ -95,6 +96,7 @@ public class VendedorServiceTest {
     private static Vendedor createValidVendedorEntity() {
         Vendedor vendedorEntity = new Vendedor();
         vendedorEntity.setId(123L);
+        vendedorEntity.setMatricula("123-OUT");
         vendedorEntity.setNome("João Silva");
         vendedorEntity.setDataNascimento(LocalDate.parse("1990-01-31"));
         vendedorEntity.setDocumento("123.456.789-00");
@@ -115,7 +117,7 @@ public class VendedorServiceTest {
         vendedorEntity.setId(10000001L);
 
         when(vendedorRepository.save(any(Vendedor.class))).thenReturn(vendedorEntity);
-        when(vendedorRepository.findById(anyLong())).thenReturn(Optional.of(vendedorEntity));
+        when(vendedorRepository.existsById(vendedorEntity.getId())).thenReturn(true);
 
         assertTrue(vendedorService.createVendedor(vendedorDto));
     }
@@ -125,9 +127,12 @@ public class VendedorServiceTest {
         VendedorDto vendedorDto = createValidVendedorDTO();
         vendedorDto.setDataNascimento(LocalDate.now().plusDays(10));
 
-        boolean result = vendedorService.createVendedor(vendedorDto);
+        when(vendedorRepository.save(any(Vendedor.class))).thenReturn(null);
+        VendedorValidationDataNascimentoException exception = assertThrows(VendedorValidationDataNascimentoException.class, () -> {
+            vendedorService.createVendedor(vendedorDto);
+        });
 
-        assertFalse(result);
+        assertEquals("Data de nascimento possui valor inválido.", exception.getMessage());
     }
 
     @Test
@@ -136,7 +141,6 @@ public class VendedorServiceTest {
         vendedorDto.setTipoContratacao(null);
 
         when(vendedorRepository.save(any(Vendedor.class))).thenReturn(null);
-
         VendedorValidationTipoContratacaoException exception = assertThrows(VendedorValidationTipoContratacaoException.class, () -> {
             vendedorService.createVendedor(vendedorDto);
         });
@@ -154,7 +158,7 @@ public class VendedorServiceTest {
         vendedorEntity.setId(10000001L);
 
         when(vendedorRepository.save(any(Vendedor.class))).thenReturn(vendedorEntity);
-        when(vendedorRepository.findById(anyLong())).thenReturn(Optional.of(vendedorEntity));
+        when(vendedorRepository.existsById(vendedorEntity.getId())).thenReturn(true);
 
         assertTrue(vendedorService.createVendedor(vendedorDto));
     }
@@ -192,7 +196,9 @@ public class VendedorServiceTest {
         String matricula = "123-OUT";
         Vendedor vendedor = createValidVendedorEntity();
 
+        when(vendedorRepository.existsByMatricula(matricula)).thenReturn(true);
         when(vendedorRepository.findById(123L)).thenReturn(Optional.of(vendedor));
+        when(vendedorRepository.existsById(123L)).thenReturn(true);
         when(filialRepository.existsById(1L)).thenReturn(true);
         when(filialRepository.findById(1L)).thenReturn(Optional.of(createValidFilialEntity()));
 
@@ -248,7 +254,7 @@ public class VendedorServiceTest {
             vendedorService.updateVendedor(vendedorDto);
         });
 
-        assertEquals("Vendedor com matrícula 123-OUT não encontrado.", exception.getMessage());
+        assertEquals("Vendedor com matrícula 123-OUT não existe.", exception.getMessage());
     }
 
     @Test
