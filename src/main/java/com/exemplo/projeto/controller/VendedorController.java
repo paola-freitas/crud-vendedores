@@ -30,8 +30,8 @@ public class VendedorController {
 
     @PutMapping
     public ResponseEntity<VendedorDto> updateVendedor(@RequestBody VendedorDto vendedorDto) {
-        return vendedorDto != null ?
-                ResponseEntity.ok(vendedorService.updateVendedor(vendedorDto)) : ResponseEntity.badRequest().build();
+        VendedorDto result = vendedorService.updateVendedor(vendedorDto);
+        return result == null ? ResponseEntity.badRequest().build() : ResponseEntity.ok(result);
     }
 
     @DeleteMapping("/{matricula}")

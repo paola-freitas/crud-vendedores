@@ -236,6 +236,7 @@ public class VendedorServiceTest {
                 "Nome Filial 1"
         );
 
+        when(vendedorRepository.existsByMatricula("123-OUT")).thenReturn(true);
         when(vendedorRepository.existsById(existVendedor.getId())).thenReturn(true);
         when(vendedorRepository.save(existVendedor)).thenReturn(existVendedor);
 
@@ -248,6 +249,7 @@ public class VendedorServiceTest {
     public void testUpdateVendedorNotFoundException() {
         VendedorDto vendedorDto = createValidVendedorDTO();
 
+        when(vendedorRepository.existsByMatricula("123-OUT")).thenReturn(true);
         when(vendedorRepository.existsById(123L)).thenReturn(false);
 
         VendedorNotFoundException exception = assertThrows(VendedorNotFoundException.class, () -> {

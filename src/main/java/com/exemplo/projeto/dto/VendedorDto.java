@@ -14,6 +14,7 @@ import java.time.LocalDate;
 @NoArgsConstructor
 public class VendedorDto {
     @Pattern(regexp = "^\\d+-OUT|\\d+-CLT|\\d+-PJ$", message = "Matrícula deve terminar com '-OUT', '-CLT' ou '-PJ'")
+    @NotBlank(message = "Matrícula é obrigatório")
     private String matricula;
 
     @NotBlank(message = "Nome é obrigatório")

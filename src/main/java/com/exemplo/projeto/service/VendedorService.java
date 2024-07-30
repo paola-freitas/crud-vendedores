@@ -36,12 +36,11 @@ public class VendedorService implements IVendedorService {
 
     @Transactional
     public boolean createVendedor(VendedorDto vendedorDto) {
-        if (vendedorDto == null || isValidVendedorDto(vendedorDto))
+        if (vendedorDto == null || isValidVendedorDto(vendedorDto)) {
             return false;
-
+        }
         Vendedor vendedorEntity = VendedorMapper.toEntity(vendedorDto);
         Vendedor vendedorCreated = vendedorRepository.save(vendedorEntity);
-
         String generatedMatricula = generateNewMatricula(vendedorCreated.getTipoContratacao(), vendedorCreated.getId());
         vendedorRepository.updateMatricula(vendedorCreated.getId(), generatedMatricula);
 
@@ -60,26 +59,27 @@ public class VendedorService implements IVendedorService {
         }
         Vendedor vendedor = vendedorRepository.findById(id)
                 .orElseThrow(() -> new VendedorNotFoundException(matricula));
-
         validateNotNull(vendedor.getIdFilial(), "O idFilial não pode ser nulo.");
         VendedorDto vendedorDto = VendedorMapper.toDTO(vendedor);
         filialRepository.findById(vendedor.getIdFilial())
                 .ifPresent(filial -> vendedorDto.setFilial(FilialMapper.toDto(filial)));
-
         return vendedorDto;
     }
 
     @Transactional
     public VendedorDto updateVendedor(VendedorDto vendedorWillBeUpdated) {
-        if (vendedorWillBeUpdated == null || isValidVendedorDto(vendedorWillBeUpdated))
+        if (vendedorWillBeUpdated.getMatricula() == null || isValidVendedorDto(vendedorWillBeUpdated)) {
             return null;
-
+        }
         String matriculaToBeUpdate = vendedorWillBeUpdated.getMatricula();
+        if (!vendedorRepository.existsByMatricula(matriculaToBeUpdate)) {
+            return null;
+        }
         Long id = extractIdFromMatricula(matriculaToBeUpdate);
         boolean vendedorExists = vendedorRepository.existsById(id);
-        if (!vendedorExists)
+        if (!vendedorExists) {
             throw new VendedorNotFoundException(matriculaToBeUpdate);
-
+        }
         Vendedor vendedorWithNewValues = new Vendedor();
         vendedorWithNewValues.setId(extractIdFromMatricula(matriculaToBeUpdate));
         vendedorWithNewValues.setNome(vendedorWillBeUpdated.getNome());
@@ -96,24 +96,28 @@ public class VendedorService implements IVendedorService {
             vendedorRepository.updateMatricula(vendedorWithNewValues.getId(), generatedMatricula);
         }
         vendedorRepository.save(vendedorWithNewValues);
+        VendedorDto vendedorDto = VendedorMapper.toDTO(vendedorWithNewValues);
+        filialRepository.findById(vendedorWithNewValues.getIdFilial())
+                .ifPresent(filial -> vendedorDto.setFilial(FilialMapper.toDto(filial)));
 
-        return VendedorMapper.toDTO(vendedorWithNewValues);
+        return vendedorDto;
     }
 
     @Override
     public boolean deleteVendedor(String matricula) {
         validateNotNull(matricula, "A matrícula não pode ser nula.");
-
         Long id = extractIdFromMatricula(matricula);
         if (!vendedorRepository.existsById(id)) {
             return false;
         }
-
         vendedorRepository.deleteById(id);
         return true;
     }
 
     private boolean isValidVendedorDto(VendedorDto vendedorDto) {
+        if (vendedorDto == null) {
+            return false;
+        }
         return isValidTipoContratacao(vendedorDto.getTipoContratacao())
                 && isValidDocumentoByTipoContratacao(vendedorDto.getDocumento(), vendedorDto.getTipoContratacao())
                 && isValidDataNascimento(vendedorDto.getDataNascimento())
@@ -134,9 +138,9 @@ public class VendedorService implements IVendedorService {
         boolean validCPF = isValidCPF(documento);
         boolean validCNPJ = isValidCNPJ(documento);
 
-        if(tipoContratacao == null)
+        if(tipoContratacao == null) {
             return false;
-
+        }
         if (tipoContratacao == TipoContratacao.PESSOA_JURIDICA && !validCNPJ) {
             throw new VendedorValidationDocumentoException();
         } else if ((tipoContratacao == TipoContratacao.OUTSOURCING || tipoContratacao == TipoContratacao.CLT)
@@ -171,15 +175,17 @@ public class VendedorService implements IVendedorService {
     }
 
     private Long extractIdFromMatricula(String matricula) {
-        if (matricula == null)
+        if (matricula == null) {
             return null;
+        }
         String[] parts = matricula.split("-");
         return Long.valueOf(parts[0]);
     }
 
     private String extractTipoContratacaoFromMatricula(String matricula) {
-        if (matricula == null)
+        if (matricula == null) {
             return null;
+        }
         String[] parts = matricula.split("-");
         return parts[1];
     }
