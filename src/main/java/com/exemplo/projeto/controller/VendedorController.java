@@ -6,8 +6,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import javax.validation.Valid;
-
 @RestController
 @RequestMapping("/api/vendedores")
 public class VendedorController {
@@ -21,8 +19,12 @@ public class VendedorController {
                 ResponseEntity.noContent().build() : ResponseEntity.badRequest().build();
     }
 
-    @GetMapping("/{matricula}")
-    public ResponseEntity<VendedorDto> readVendedorByMatricula(@PathVariable @Valid String matricula) {
+    @GetMapping
+    public ResponseEntity<VendedorDto> readVendedorByMatricula(@RequestParam String matricula) {
+        if (matricula.isEmpty()) {
+            ResponseEntity.badRequest().build();
+        }
+        ResponseEntity.badRequest().build();
         VendedorDto vendedorDto = vendedorService.getVendedorByMatricula(matricula);
         return vendedorDto != null ?
                 ResponseEntity.ok(vendedorDto) : ResponseEntity.notFound().build();
@@ -34,8 +36,11 @@ public class VendedorController {
         return result == null ? ResponseEntity.badRequest().build() : ResponseEntity.ok(result);
     }
 
-    @DeleteMapping("/{matricula}")
-    public ResponseEntity<Void> deleteVendedor(@PathVariable @Valid String matricula) {
+    @DeleteMapping
+    public ResponseEntity<Void> deleteVendedor(@RequestParam String matricula) {
+        if (matricula.isEmpty()) {
+            ResponseEntity.badRequest().build();
+        }
         return vendedorService.deleteVendedor(matricula) ?
                 ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
     }
