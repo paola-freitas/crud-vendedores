@@ -1,6 +1,5 @@
 package com.exemplo.projeto.repository;
 
-import com.exemplo.projeto.enums.TipoContratacao;
 import com.exemplo.projeto.model.Vendedor;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;

@@ -6,7 +6,6 @@ import com.exemplo.projeto.exceptions.VendedorNotFoundException;
 import com.exemplo.projeto.exceptions.VendedorValidationDataNascimentoException;
 import com.exemplo.projeto.exceptions.VendedorValidationDocumentoException;
 import com.exemplo.projeto.exceptions.VendedorValidationTipoContratacaoException;
-import com.exemplo.projeto.model.Filial;
 import com.exemplo.projeto.repository.IFilialRepository;
 import com.exemplo.projeto.service.mapper.FilialMapper;
 import com.exemplo.projeto.service.mapper.VendedorMapper;
@@ -18,7 +17,6 @@ import org.springframework.stereotype.Service;
 import javax.transaction.Transactional;
 import java.time.LocalDate;
 import java.time.Period;
-import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -54,7 +52,7 @@ public class VendedorService implements IVendedorService {
             return null;
         }
         Long id = extractIdFromMatricula(matricula);
-        if(!vendedorRepository.existsById(id)) {
+        if (!vendedorRepository.existsById(id)) {
             return null;
         }
         Vendedor vendedor = vendedorRepository.findById(id)
@@ -80,18 +78,9 @@ public class VendedorService implements IVendedorService {
         if (!vendedorExists) {
             throw new VendedorNotFoundException(matriculaToBeUpdate);
         }
-        Vendedor vendedorWithNewValues = new Vendedor();
-        vendedorWithNewValues.setId(extractIdFromMatricula(matriculaToBeUpdate));
-        vendedorWithNewValues.setNome(vendedorWillBeUpdated.getNome());
-        vendedorWithNewValues.setDataNascimento(vendedorWillBeUpdated.getDataNascimento() != null ?
-                vendedorWillBeUpdated.getDataNascimento() : null);
-        vendedorWithNewValues.setDocumento(vendedorWillBeUpdated.getDocumento());
-        vendedorWithNewValues.setEmail(vendedorWillBeUpdated.getEmail());
-        vendedorWithNewValues.setTipoContratacao(vendedorWillBeUpdated.getTipoContratacao());
-        vendedorWithNewValues.updatedMatricula();
-        vendedorWithNewValues.setIdFilial(vendedorWillBeUpdated.getFilial().getId());
+        Vendedor vendedorWithNewValues = mapVendedor(matriculaToBeUpdate, vendedorWillBeUpdated);
 
-        if(vendedorWillBeUpdated.getTipoContratacao() != vendedorWithNewValues.getTipoContratacao()) {
+        if (vendedorWillBeUpdated.getTipoContratacao() != vendedorWithNewValues.getTipoContratacao()) {
             String generatedMatricula = generateNewMatricula(vendedorWithNewValues.getTipoContratacao(), vendedorWithNewValues.getId());
             vendedorRepository.updateMatricula(vendedorWithNewValues.getId(), generatedMatricula);
         }
@@ -138,7 +127,7 @@ public class VendedorService implements IVendedorService {
         boolean validCPF = isValidCPF(documento);
         boolean validCNPJ = isValidCNPJ(documento);
 
-        if(tipoContratacao == null) {
+        if (tipoContratacao == null) {
             return false;
         }
         if (tipoContratacao == TipoContratacao.PESSOA_JURIDICA && !validCNPJ) {
@@ -182,17 +171,23 @@ public class VendedorService implements IVendedorService {
         return Long.valueOf(parts[0]);
     }
 
-    private String extractTipoContratacaoFromMatricula(String matricula) {
-        if (matricula == null) {
-            return null;
-        }
-        String[] parts = matricula.split("-");
-        return parts[1];
-    }
-
     private String generateNewMatricula(TipoContratacao tipoContratacao, Long id) {
         String suffix = tipoContratacao.getSuffix();
         return id + "-" + suffix;
+    }
+
+    private Vendedor mapVendedor(String matricula, VendedorDto vendedor) {
+        Vendedor vendedorUpdated = new Vendedor();
+        vendedorUpdated.setId(extractIdFromMatricula(matricula));
+        vendedorUpdated.setNome(vendedor.getNome());
+        vendedorUpdated.setDataNascimento(vendedor.getDataNascimento() != null ?
+                vendedor.getDataNascimento() : null);
+        vendedorUpdated.setDocumento(vendedor.getDocumento());
+        vendedorUpdated.setEmail(vendedor.getEmail());
+        vendedorUpdated.setTipoContratacao(vendedor.getTipoContratacao());
+        vendedorUpdated.updatedMatricula();
+        vendedorUpdated.setIdFilial(vendedor.getFilial().getId());
+        return vendedorUpdated;
     }
 
     private void validateNotNull(Object object, String message) {
@@ -200,5 +195,4 @@ public class VendedorService implements IVendedorService {
             throw new IllegalArgumentException(message);
         }
     }
-
 }
