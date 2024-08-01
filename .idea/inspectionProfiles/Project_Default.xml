@@ -12,15 +12,21 @@
       <option name="ignoredModules">
         <list>
           <option value="meu-projeto" />
+          <option value="meu-projeto" />
+          <option value="meu-projeto" />
         </list>
       </option>
       <option name="ignoredPackages">
         <list>
           <option value="org.springframework.data:spring-data-mongodb:3.2.4" />
+          <option value="ch.qos.logback:logback-classic:1.2.5" />
+          <option value="ch.qos.logback:logback-core:1.2.5" />
         </list>
       </option>
       <option name="ignoredReasons">
         <list>
+          <option value="Not exploitable" />
+          <option value="Not exploitable" />
           <option value="Not exploitable" />
         </list>
       </option>
