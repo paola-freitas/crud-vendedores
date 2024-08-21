@@ -2,10 +2,7 @@ package com.exemplo.projeto.service;
 
 import com.exemplo.projeto.dto.VendedorDto;
 import com.exemplo.projeto.enums.TipoContratacao;
-import com.exemplo.projeto.exceptions.VendedorNotFoundException;
-import com.exemplo.projeto.exceptions.VendedorValidationDataNascimentoException;
-import com.exemplo.projeto.exceptions.VendedorValidationDocumentoException;
-import com.exemplo.projeto.exceptions.VendedorValidationTipoContratacaoException;
+import com.exemplo.projeto.exceptions.*;
 import com.exemplo.projeto.repository.IFilialRepository;
 import com.exemplo.projeto.service.mapper.FilialMapper;
 import com.exemplo.projeto.service.mapper.VendedorMapper;
@@ -20,6 +17,8 @@ import java.time.Period;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static com.exemplo.projeto.service.mapper.VendedorMapper.*;
+
 @Service
 public class VendedorService implements IVendedorService {
 
@@ -33,42 +32,43 @@ public class VendedorService implements IVendedorService {
     }
 
     @Transactional
-    public boolean createVendedor(VendedorDto vendedorDto) {
-        if (vendedorDto == null || isValidVendedorDto(vendedorDto)) {
-            return false;
-        }
+    public void createVendedor(VendedorDto vendedorDto) {
+        isValidVendedorDto(vendedorDto);
+
         Vendedor vendedorEntity = VendedorMapper.toEntity(vendedorDto);
         Vendedor vendedorCreated = vendedorRepository.save(vendedorEntity);
         String generatedMatricula = generateNewMatricula(vendedorCreated.getTipoContratacao(), vendedorCreated.getId());
         vendedorRepository.updateMatricula(vendedorCreated.getId(), generatedMatricula);
 
-        return vendedorRepository.existsById(vendedorCreated.getId());
+        vendedorRepository.existsById(vendedorCreated.getId());
     }
 
     @Override
     public VendedorDto getVendedorByMatricula(String matricula) {
-        validateNotNull(matricula, "A matrícula não pode ser nula.");
+        if (matricula == null || matricula.isEmpty()) {
+            throw new InvalidValueException("Matrícula não deve ser vazia.");
+        }
         if (!vendedorRepository.existsByMatricula(matricula)) {
-            return null;
+            throw new NotFoundObjectException("Vendedor não encontrado.");
         }
+
         Long id = extractIdFromMatricula(matricula);
-        if (!vendedorRepository.existsById(id)) {
-            return null;
-        }
         Vendedor vendedor = vendedorRepository.findById(id)
-                .orElseThrow(() -> new VendedorNotFoundException(matricula));
-        validateNotNull(vendedor.getIdFilial(), "O idFilial não pode ser nulo.");
+                .orElseThrow(() -> new NotFoundObjectException("Vendedor não encontrado."));
         VendedorDto vendedorDto = VendedorMapper.toDTO(vendedor);
         filialRepository.findById(vendedor.getIdFilial())
                 .ifPresent(filial -> vendedorDto.setFilial(FilialMapper.toDto(filial)));
+
         return vendedorDto;
     }
 
     @Transactional
     public VendedorDto updateVendedor(VendedorDto vendedorWillBeUpdated) {
-        if (vendedorWillBeUpdated.getMatricula() == null || isValidVendedorDto(vendedorWillBeUpdated)) {
-            return null;
+        if (vendedorWillBeUpdated == null) {
+            throw new InvalidValueException("Vendedor não deve ser vazio.");
         }
+
+        isValidVendedorDto(vendedorWillBeUpdated);
         String matriculaToBeUpdate = vendedorWillBeUpdated.getMatricula();
         if (!vendedorRepository.existsByMatricula(matriculaToBeUpdate)) {
             return null;
@@ -78,9 +78,9 @@ public class VendedorService implements IVendedorService {
         if (!vendedorExists) {
             throw new VendedorNotFoundException(matriculaToBeUpdate);
         }
-        Vendedor vendedorWithNewValues = mapVendedor(matriculaToBeUpdate, vendedorWillBeUpdated);
+        Vendedor vendedorWithNewValues = toUpdateAndEntity(matriculaToBeUpdate, vendedorWillBeUpdated);
 
-        if (vendedorWillBeUpdated.getTipoContratacao() != vendedorWithNewValues.getTipoContratacao()) {
+        if (!vendedorWillBeUpdated.getTipoContratacao().equalsIgnoreCase(vendedorWithNewValues.getTipoContratacao().getDescriptor())) {
             String generatedMatricula = generateNewMatricula(vendedorWithNewValues.getTipoContratacao(), vendedorWithNewValues.getId());
             vendedorRepository.updateMatricula(vendedorWithNewValues.getId(), generatedMatricula);
         }
@@ -94,7 +94,10 @@ public class VendedorService implements IVendedorService {
 
     @Override
     public boolean deleteVendedor(String matricula) {
-        validateNotNull(matricula, "A matrícula não pode ser nula.");
+        if (matricula == null || matricula.isEmpty()) {
+            throw new InvalidValueException("Matrícula não deve ser vazia.");
+        }
+
         Long id = extractIdFromMatricula(matricula);
         if (!vendedorRepository.existsById(id)) {
             return false;
@@ -103,40 +106,45 @@ public class VendedorService implements IVendedorService {
         return true;
     }
 
-    private boolean isValidVendedorDto(VendedorDto vendedorDto) {
+    private void isValidVendedorDto(VendedorDto vendedorDto) {
         if (vendedorDto == null) {
-            return false;
+            throw new InvalidValueException("Vendedor não deve ser vazio.");
         }
-        return isValidTipoContratacao(vendedorDto.getTipoContratacao())
-                && isValidDocumentoByTipoContratacao(vendedorDto.getDocumento(), vendedorDto.getTipoContratacao())
-                && isValidDataNascimento(vendedorDto.getDataNascimento())
-                && isValidEmail(vendedorDto.getEmail())
-                && vendedorDto.getFilial() == null;
+        isValidTipoContratacao(vendedorDto.getTipoContratacao());
+        isValidDocumentoByTipoContratacao(vendedorDto.getDocumento(), vendedorDto.getTipoContratacao());
+        isValidDataNascimento(vendedorDto.getDataNascimento());
+        isValidEmail(vendedorDto.getEmail());
+        if (vendedorDto.getFilial() == null) {
+            throw new InvalidValueException("Filial não deve ser null.");
+        }
     }
 
-    private boolean isValidTipoContratacao(TipoContratacao tipoContratacao) {
-        try {
-            TipoContratacao tipoContratacaoEnum = TipoContratacao.valueOf(String.valueOf(tipoContratacao));
-        } catch (IllegalArgumentException e) {
-            throw new VendedorValidationTipoContratacaoException();
+    private void isValidTipoContratacao(String tipoContratacao) {
+        int cont = 0;
+        for (TipoContratacao tc : TipoContratacao.values()) {
+            if (tc.name().equalsIgnoreCase(tipoContratacao)) {
+                cont++;
+            }
         }
-        return true;
+        if (cont == 0) {
+            throw new InvalidValueException("Tipo contratação informada não é válida.");
+        }
     }
 
-    private boolean isValidDocumentoByTipoContratacao(String documento, TipoContratacao tipoContratacao) {
+    private void isValidDocumentoByTipoContratacao(String documento, String tipoContratacao) {
         boolean validCPF = isValidCPF(documento);
         boolean validCNPJ = isValidCNPJ(documento);
 
         if (tipoContratacao == null) {
-            return false;
+            throw new InvalidValueException("Tipo contratação não deve ser null.");
         }
-        if (tipoContratacao == TipoContratacao.PESSOA_JURIDICA && !validCNPJ) {
-            throw new VendedorValidationDocumentoException();
-        } else if ((tipoContratacao == TipoContratacao.OUTSOURCING || tipoContratacao == TipoContratacao.CLT)
-                    && !validCPF) {
-            throw new VendedorValidationDocumentoException();
+        if (tipoContratacao.equals(TipoContratacao.PESSOA_JURIDICA.getDescriptor().toUpperCase()) && !validCNPJ) {
+            throw new InvalidValueException("Tipo contratação não condiz com o documento informado.");
+        } else if ((tipoContratacao.equalsIgnoreCase(TipoContratacao.OUTSOURCING.getDescriptor())
+                || tipoContratacao.equalsIgnoreCase(TipoContratacao.CLT.getDescriptor()))
+                && !validCPF) {
+            throw new InvalidValueException("Tipo contratação não condiz com o documento informado.");
         }
-        return true;
     }
 
     private boolean isValidCPF(String cpf) {
@@ -147,52 +155,28 @@ public class VendedorService implements IVendedorService {
         return cnpj != null && cnpj.matches("\\d{2}\\.\\d{3}\\.\\d{3}/\\d{4}-\\d{2}");
     }
 
-    private boolean isValidDataNascimento(LocalDate date) {
+    private void isValidDataNascimento(LocalDate date) {
         if (date != null) {
+            if (date.isAfter(LocalDate.now())) {
+                throw new InvalidValueException("A data deve ser uma data passada.");
+            }
             int idade = Period.between(date, LocalDate.now()).getYears();
-            if (date.isAfter(LocalDate.now()) || idade <= 18) {
-                throw new VendedorValidationDataNascimentoException();
+            if (idade < 18) {
+                throw new InvalidValueException("Deve-se ter mais de 18 anos.");
             }
         }
-        return true;
     }
 
-    private boolean isValidEmail(String email) {
+    private void isValidEmail(String email) {
         Pattern pattern = Pattern.compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$");
         Matcher matcher = pattern.matcher(email);
-        return matcher.matches();
-    }
-
-    private Long extractIdFromMatricula(String matricula) {
-        if (matricula == null) {
-            return null;
+        if (!matcher.matches()) {
+            throw new InvalidValueException("O e-mail informado não é válido.");
         }
-        String[] parts = matricula.split("-");
-        return Long.valueOf(parts[0]);
     }
 
     private String generateNewMatricula(TipoContratacao tipoContratacao, Long id) {
         String suffix = tipoContratacao.getSuffix();
         return id + "-" + suffix;
-    }
-
-    private Vendedor mapVendedor(String matricula, VendedorDto vendedor) {
-        Vendedor vendedorUpdated = new Vendedor();
-        vendedorUpdated.setId(extractIdFromMatricula(matricula));
-        vendedorUpdated.setNome(vendedor.getNome());
-        vendedorUpdated.setDataNascimento(vendedor.getDataNascimento() != null ?
-                vendedor.getDataNascimento() : null);
-        vendedorUpdated.setDocumento(vendedor.getDocumento());
-        vendedorUpdated.setEmail(vendedor.getEmail());
-        vendedorUpdated.setTipoContratacao(vendedor.getTipoContratacao());
-        vendedorUpdated.updatedMatricula();
-        vendedorUpdated.setIdFilial(vendedor.getFilial().getId());
-        return vendedorUpdated;
-    }
-
-    private void validateNotNull(Object object, String message) {
-        if (object == null) {
-            throw new IllegalArgumentException(message);
-        }
     }
 }

@@ -3,6 +3,7 @@ package com.exemplo.projeto.controller;
 import com.exemplo.projeto.dto.VendedorDto;
 import com.exemplo.projeto.service.IVendedorService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,8 +16,8 @@ public class VendedorController {
 
     @PostMapping
     public ResponseEntity<Void> createVendedor(@RequestBody VendedorDto vendedorDto) {
-        return vendedorService.createVendedor(vendedorDto) ?
-                ResponseEntity.noContent().build() : ResponseEntity.badRequest().build();
+        vendedorService.createVendedor(vendedorDto);
+        return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     @GetMapping

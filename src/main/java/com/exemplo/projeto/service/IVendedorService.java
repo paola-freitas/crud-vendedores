@@ -4,7 +4,7 @@ import com.exemplo.projeto.dto.VendedorDto;
 
 public interface IVendedorService {
 
-    boolean createVendedor(VendedorDto vendedorDto);
+    void createVendedor(VendedorDto vendedorDto);
 
     VendedorDto getVendedorByMatricula(String matricula);
 

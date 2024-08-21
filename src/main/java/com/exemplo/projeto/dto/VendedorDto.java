@@ -20,7 +20,6 @@ public class VendedorDto {
     @NotBlank(message = "Nome é obrigatório")
     private String nome;
 
-    @Past(message = "Data de nascimento deve ser uma data passada")
     private LocalDate dataNascimento;
 
     @NotBlank(message = "Documento é obrigatório")
@@ -30,7 +29,7 @@ public class VendedorDto {
     private String email;
 
     @NotNull(message = "Tipo de contratação é obrigatório")
-    private TipoContratacao tipoContratacao;
+    private String tipoContratacao;
 
     @NotNull(message = "Filial é obrigatória")
     private FilialDto filial;
