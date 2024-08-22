@@ -4,9 +4,6 @@ import com.exemplo.projeto.dto.FilialDto;
 import com.exemplo.projeto.dto.VendedorDto;
 import com.exemplo.projeto.enums.TipoContratacao;
 import com.exemplo.projeto.exceptions.*;
-import com.exemplo.projeto.model.Filial;
-import com.exemplo.projeto.repository.IFilialRepository;
-import com.exemplo.projeto.service.mapper.FilialMapper;
 import com.exemplo.projeto.service.mapper.VendedorMapper;
 import com.exemplo.projeto.model.Vendedor;
 import com.exemplo.projeto.repository.IVendedorRepository;
@@ -26,12 +23,12 @@ import static com.exemplo.projeto.service.mapper.VendedorMapper.*;
 public class VendedorService implements IVendedorService {
 
     private final IVendedorRepository vendedorRepository;
-    private final IFilialRepository filialRepository;
+    private final IFilialService filialService;
 
     @Autowired
-    public VendedorService(IVendedorRepository vendedorRepository, IFilialRepository filialRepository) {
+    public VendedorService(IVendedorRepository vendedorRepository, IFilialService filialService) {
         this.vendedorRepository = vendedorRepository;
-        this.filialRepository = filialRepository;
+        this.filialService = filialService;
     }
 
     @Transactional
@@ -59,11 +56,7 @@ public class VendedorService implements IVendedorService {
         }
         VendedorDto vendedorDto = VendedorMapper.toDTO(optionalVendedor.get());
 
-        Optional<Filial> optionalFilial = filialRepository.findById(id);
-        if (optionalFilial.isEmpty()) {
-            throw new NotFoundObjectException("Filial não encontrada.");
-        }
-        FilialDto filialDto = FilialMapper.toDto(optionalFilial.get());
+        FilialDto filialDto = filialService.getFilialById(optionalVendedor.get().getIdFilial());
         vendedorDto.setFilial(filialDto);
 
         return vendedorDto;
@@ -86,8 +79,9 @@ public class VendedorService implements IVendedorService {
         }
         vendedorRepository.save(vendedorWithNewValues);
         VendedorDto vendedorDto = VendedorMapper.toDTO(vendedorWithNewValues);
-        filialRepository.findById(vendedorWithNewValues.getIdFilial())
-                .ifPresent(filial -> vendedorDto.setFilial(FilialMapper.toDto(filial)));
+
+        FilialDto filialDto = filialService.getFilialById(vendedorDto.getFilial().getId());
+        vendedorDto.setFilial(filialDto);
 
         return vendedorDto;
     }
