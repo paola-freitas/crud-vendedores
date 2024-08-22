@@ -10,5 +10,5 @@ public interface IVendedorService {
 
     VendedorDto updateVendedor(VendedorDto vendedorDto);
 
-    boolean deleteVendedor(String matricula);
+    void deleteVendedor(String matricula);
 }

@@ -277,7 +277,7 @@ public class VendedorServiceTest {
         when(vendedorRepository.existsById(123L)).thenReturn(true);
         vendedorRepository.deleteById(123L);
 
-        boolean result = vendedorService.deleteVendedor(matricula);
+        vendedorService.deleteVendedor(matricula);
 
         assertTrue(result);
     }

@@ -1,8 +1,10 @@
 package com.exemplo.projeto.service;
 
+import com.exemplo.projeto.dto.FilialDto;
 import com.exemplo.projeto.dto.VendedorDto;
 import com.exemplo.projeto.enums.TipoContratacao;
 import com.exemplo.projeto.exceptions.*;
+import com.exemplo.projeto.model.Filial;
 import com.exemplo.projeto.repository.IFilialRepository;
 import com.exemplo.projeto.service.mapper.FilialMapper;
 import com.exemplo.projeto.service.mapper.VendedorMapper;
@@ -14,6 +16,7 @@ import org.springframework.stereotype.Service;
 import javax.transaction.Transactional;
 import java.time.LocalDate;
 import java.time.Period;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -48,16 +51,20 @@ public class VendedorService implements IVendedorService {
         if (matricula == null || matricula.isEmpty()) {
             throw new InvalidValueException("Matrícula não deve ser vazia.");
         }
-        if (!vendedorRepository.existsByMatricula(matricula)) {
-            throw new NotFoundObjectException("Vendedor não encontrado.");
-        }
 
         Long id = extractIdFromMatricula(matricula);
-        Vendedor vendedor = vendedorRepository.findById(id)
-                .orElseThrow(() -> new NotFoundObjectException("Vendedor não encontrado."));
-        VendedorDto vendedorDto = VendedorMapper.toDTO(vendedor);
-        filialRepository.findById(vendedor.getIdFilial())
-                .ifPresent(filial -> vendedorDto.setFilial(FilialMapper.toDto(filial)));
+        Optional<Vendedor> optionalVendedor = vendedorRepository.findById(id);
+        if (optionalVendedor.isEmpty()) {
+            throw new NotFoundObjectException("Vendedor não encontrado.");
+        }
+        VendedorDto vendedorDto = VendedorMapper.toDTO(optionalVendedor.get());
+
+        Optional<Filial> optionalFilial = filialRepository.findById(id);
+        if (optionalFilial.isEmpty()) {
+            throw new NotFoundObjectException("Filial não encontrada.");
+        }
+        FilialDto filialDto = FilialMapper.toDto(optionalFilial.get());
+        vendedorDto.setFilial(filialDto);
 
         return vendedorDto;
     }
@@ -67,18 +74,11 @@ public class VendedorService implements IVendedorService {
         if (vendedorWillBeUpdated == null) {
             throw new InvalidValueException("Vendedor não deve ser vazio.");
         }
+        getVendedorByMatricula(vendedorWillBeUpdated.getMatricula());
 
         isValidVendedorDto(vendedorWillBeUpdated);
-        String matriculaToBeUpdate = vendedorWillBeUpdated.getMatricula();
-        if (!vendedorRepository.existsByMatricula(matriculaToBeUpdate)) {
-            return null;
-        }
-        Long id = extractIdFromMatricula(matriculaToBeUpdate);
-        boolean vendedorExists = vendedorRepository.existsById(id);
-        if (!vendedorExists) {
-            throw new VendedorNotFoundException(matriculaToBeUpdate);
-        }
-        Vendedor vendedorWithNewValues = toUpdateAndEntity(matriculaToBeUpdate, vendedorWillBeUpdated);
+
+        Vendedor vendedorWithNewValues = toUpdateAndEntity(vendedorWillBeUpdated.getMatricula(), vendedorWillBeUpdated);
 
         if (!vendedorWillBeUpdated.getTipoContratacao().equalsIgnoreCase(vendedorWithNewValues.getTipoContratacao().getDescriptor())) {
             String generatedMatricula = generateNewMatricula(vendedorWithNewValues.getTipoContratacao(), vendedorWithNewValues.getId());
@@ -93,17 +93,16 @@ public class VendedorService implements IVendedorService {
     }
 
     @Override
-    public boolean deleteVendedor(String matricula) {
+    public void deleteVendedor(String matricula) {
         if (matricula == null || matricula.isEmpty()) {
             throw new InvalidValueException("Matrícula não deve ser vazia.");
         }
-
         Long id = extractIdFromMatricula(matricula);
         if (!vendedorRepository.existsById(id)) {
-            return false;
+            throw new NotFoundObjectException("Vendedor não encontrado.");
         }
+
         vendedorRepository.deleteById(id);
-        return true;
     }
 
     private void isValidVendedorDto(VendedorDto vendedorDto) {

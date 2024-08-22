@@ -22,28 +22,20 @@ public class VendedorController {
 
     @GetMapping
     public ResponseEntity<VendedorDto> readVendedorByMatricula(@RequestParam String matricula) {
-        if (matricula.isEmpty()) {
-            ResponseEntity.badRequest().build();
-        }
-        ResponseEntity.badRequest().build();
-        VendedorDto vendedorDto = vendedorService.getVendedorByMatricula(matricula);
-        return vendedorDto != null ?
-                ResponseEntity.ok(vendedorDto) : ResponseEntity.notFound().build();
+        VendedorDto result = vendedorService.getVendedorByMatricula(matricula);
+        return ResponseEntity.status(HttpStatus.OK).body(result);
     }
 
     @PutMapping
     public ResponseEntity<VendedorDto> updateVendedor(@RequestBody VendedorDto vendedorDto) {
         VendedorDto result = vendedorService.updateVendedor(vendedorDto);
-        return result == null ? ResponseEntity.badRequest().build() : ResponseEntity.ok(result);
+        return ResponseEntity.status(HttpStatus.OK).body(result);
     }
 
     @DeleteMapping
     public ResponseEntity<Void> deleteVendedor(@RequestParam String matricula) {
-        if (matricula.isEmpty()) {
-            ResponseEntity.badRequest().build();
-        }
-        return vendedorService.deleteVendedor(matricula) ?
-                ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
+        vendedorService.deleteVendedor(matricula);
+        return ResponseEntity.status(HttpStatus.OK).build();
     }
 
 }
