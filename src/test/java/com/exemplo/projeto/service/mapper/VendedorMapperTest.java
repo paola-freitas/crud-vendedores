@@ -33,7 +33,7 @@ public class VendedorMapperTest {
         assertEquals("João Silva", dto.getNome());
         assertEquals("123.456.789-00", dto.getDocumento());
         assertEquals("joao.silva@email.com", dto.getEmail());
-        assertEquals("Outsourcing", dto.getTipoContratacao().getDescriptor());
+        assertEquals("Outsourcing", dto.getTipoContratacao().toUpperCase());
         assertEquals("1990-12-12", dto.getDataNascimento().toString());
     }
 
@@ -54,7 +54,7 @@ public class VendedorMapperTest {
         dto.setNome("Ana Maria");
         dto.setDocumento("12.123.123/0001-99");
         dto.setEmail("ana.maria@email.com.br");
-        dto.setTipoContratacao(TipoContratacao.PESSOA_JURIDICA);
+        dto.setTipoContratacao(TipoContratacao.PESSOA_JURIDICA.getDescriptor());
         dto.setDataNascimento(LocalDate.parse("1990-12-12"));
         dto.setFilial(filial);
 

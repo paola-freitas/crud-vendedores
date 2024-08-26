@@ -7,9 +7,9 @@ import com.exemplo.projeto.exceptions.*;
 import com.exemplo.projeto.service.mapper.VendedorMapper;
 import com.exemplo.projeto.model.Vendedor;
 import com.exemplo.projeto.repository.IVendedorRepository;
+import org.apache.catalina.mapper.Mapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
 import javax.transaction.Transactional;
 import java.time.LocalDate;
 import java.time.Period;
@@ -77,10 +77,10 @@ public class VendedorService implements IVendedorService {
             String generatedMatricula = generateNewMatricula(vendedorWithNewValues.getTipoContratacao(), vendedorWithNewValues.getId());
             vendedorRepository.updateMatricula(vendedorWithNewValues.getId(), generatedMatricula);
         }
-        vendedorRepository.save(vendedorWithNewValues);
-        VendedorDto vendedorDto = VendedorMapper.toDTO(vendedorWithNewValues);
+        vendedorRepository.saveAndFlush(vendedorWithNewValues);
+        VendedorDto vendedorDto = toDTO(vendedorWithNewValues);
 
-        FilialDto filialDto = filialService.getFilialById(vendedorDto.getFilial().getId());
+        FilialDto filialDto = filialService.getFilialById(vendedorWithNewValues.getIdFilial());
         vendedorDto.setFilial(filialDto);
 
         return vendedorDto;

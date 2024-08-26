@@ -12,5 +12,4 @@ public interface IVendedorRepository extends JpaRepository<Vendedor, Long> {
     @Query("UPDATE Vendedor v SET v.matricula = :matricula WHERE v.id = :id")
     void updateMatricula(@Param("id") Long id, @Param("matricula") String matricula);
 
-    boolean existsByMatricula(String matricula);
 }
